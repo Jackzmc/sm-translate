@@ -1,7 +1,6 @@
 import express from 'express'
 import { franc } from 'franc-min'
 import { v2 } from '@google-cloud/translate'
-import '@dotenvx/dotenvx/config'
 
 const app = express();
 app.use(express.json());
@@ -76,3 +75,6 @@ const host = process.env.WEB_HOST ?? "127.0.0.1"
 
 console.info(`Listening on http://${host}:${port}`)
 app.listen(port, host);
+
+process.on('SIGTERM', () => process.exit(0));
+process.on('SIGINT', () => process.exit(0));
