@@ -67,6 +67,7 @@ app.post('/translate', async (req, res) => {
       translate: performance.now() - translateStart
     }
   } as TranslateResponse);
+  console.log(`[${sourceLang}->${target}] ${text}`)
 });
 
 const port = parseInt(process.env.WEB_PORT ?? "5000")
