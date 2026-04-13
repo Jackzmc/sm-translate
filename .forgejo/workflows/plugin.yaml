@@ -1,0 +1,67 @@
+on: 
+  push:
+    paths:
+      - 'scripting/**'
+      - '.forgejo/workflows/plugin.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: docker
+    strategy:
+      matrix:
+        sm-version: [ '1.11.x', '1.12.x', '1.13.x']
+    name: Sourcemod v${{ matrix.sm-version }}
+    steps:
+      - name: Checkout
+        uses: https://git.jacz.me/actions/checkout@v5
+      - name: Setup sourcepawn
+        uses: https://git.jackz.me/actions/setup-sp@bb7306e551914d48b2d8405dba17ddc46a4a12a2
+        with:
+          version: ${{ matrix.sm-version }}
+      - name: Build Plugins
+        env:
+          SPCOMP_PATH: spcomp
+        run: chmod +x compile_all.sh && ./compile_all.sh
+      - name: Upload artifacts 
+        uses: https://git.jackz.me/actions/upload-artifact@v4
+        with: 
+          name: ${{ matrix.sm-version }}.zip
+          path: plugins/*.smx  
+
+  release:
+    name: Create release for tags
+    # Only release on tags
+    if: startsWith(forgejo.ref, 'refs/tags')
+    runs-on: docker
+    needs: build
+    steps:
+      - name: Pull Artifact
+        uses: https://git.jackz.me/actions/download-artifact@v4
+        with: 
+          merge-multiple: true
+      - uses: https://git.jackz.me/actions/forgejo-release@v2.7.3
+        with:
+          direction: upload
+          release-dir: .
+          prerelease: true
+          override: true
+
+  # deploy:
+  #   name: Deploy release
+  #   # Only deploy on tags
+  #   if: startsWith(forgejo.ref, 'refs/tags')
+  #   runs-on: ubuntu-full
+  #   needs: build
+  #   steps:
+  #     - name: Pull Artifact
+  #       uses: https://git.jacz.me/actions/download-artifact@v4
+  #       with: 
+  #         name: 1.12.x.zip
+  #     - name: Install SSH Key
+  #       uses: https://git.jacz.me/actions/ssh-key-action@v2.7.0
+  #       with:
+  #         key: ${{ secrets.REMOTE_PRIVATE_KEY }}
+  #         known_hosts: ${{ secrets.KNOWN_HOSTS }}
+  #     - name: upload plugin to server
+  #       run: rsync --info=NAME *.smx "${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }}:${{ secrets.PLUGINS_PATH }}"
