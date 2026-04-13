@@ -27,7 +27,7 @@ jobs:
       - name: Upload artifacts 
         uses: https://git.jackz.me/actions/upload-artifact@v4
         with: 
-          name: ${{ matrix.sm-version }}.zip
+          name: ${{ matrix.sm-version }}
           path: plugins/*.smx  
 
   release:
