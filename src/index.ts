@@ -1,6 +1,7 @@
 import express from 'express'
 import { franc } from 'franc-min'
 import { v2 } from '@google-cloud/translate'
+import { LANG_MAP } from './mapping.js';
 
 const app = express();
 app.use(express.json());
@@ -11,8 +12,6 @@ const translator = new v2.Translate({
   key: process.env.GOOGLE_TRANSLATE_API_KEY
 });
 
-const LANG_MAP: Record<string, string> = { eng: 'en', spa: 'es' };
-
 function badRequest(res: express.Response, message: string) {
   return res.status(400).json({
     error: "INVALID_PARAM",
@@ -20,54 +19,63 @@ function badRequest(res: express.Response, message: string) {
   })
 }
 
-export interface TranslateResponse_Skipped {
-  result: "skipped",
-  source: string,
-  target: string
-}
-export interface TranslateResponse_Translated {
-  result: "translated",
-  source: string,
-  target: string,
+interface TranslateTranslationResult {
+  lang: string,
   text: string,
+  timeElapsedMs?: number
 }
 
-export type TranslateResponse = TranslateResponse_Skipped | TranslateResponse_Translated
+export interface TranslateResponse {
+  source: string,
+  translations: TranslateTranslationResult[]
+}
 
 app.post('/translate', async (req, res) => {
   console.log(req.query)
-  const { text, target = 'en' } = req.query
+  const { text, targets } = req.query
   if (!text || typeof text != "string") return badRequest(res, "text is not defined or not a string")
-  if (!target || typeof target != "string") return badRequest(res, "target is not defined or not a string ")
+  if (!targets || typeof targets != "string") return badRequest(res, "targets is not defined or not a comma separated list")
+
+  const targetSet = new Set(targets.split(","))
+
   const requestStart = performance.now()
   // Fast local detection (~5ms)
   const detected = franc(text);
-  const sourceLang = LANG_MAP[detected] || 'en';
-
-  // Skip if already correct language
-  if (sourceLang === target) {
-    return res.json({
-      result: "skipped",
-      source: sourceLang,
-      target,
-    } as TranslateResponse);
+  let sourceLang = LANG_MAP[detected]
+  if(!sourceLang) {
+    console.warn(`Unknown language code "${detected}", falling back to 'en'`)
+    sourceLang = "en"
   }
 
-  const translateStart = performance.now()
-  // Only translate the 2% that needs it
-  const [translation] = await translator.translate(text, target);
+  targetSet.delete(sourceLang)
+
+  /*
+    if targets = [ en ] and source = [ en ]  SKIP
+    if targets = [ en ] and source = [ es ]  TRANSLATE to [ en ]
+    if targets = [ en, es ] and source = [ en ] TRANSLATE to [ es ]
+  */
+
+  const translations: TranslateTranslationResult[] = [] 
+  
+  for(const target of targetSet) {
+    const start = performance.now()
+    // Only translate the 2% that needs it
+    const [translation] = await translator.translate(text, target);
+
+    const timeElapsed = performance.now() - start
+
+    translations.push({
+      lang: target,
+      text: translation,
+      timeElapsedMs: timeElapsed
+    })
+  }
 
   res.json({
-    result: "translated",
-    text: translation,
     source: sourceLang,
-    target,
-    times: {
-      request: performance.now() - requestStart,
-      translate: performance.now() - translateStart
-    }
+    translations
   } as TranslateResponse);
-  console.log(`[${sourceLang}->${target}] ${text}`)
+  console.log(`[${sourceLang}->${[...targetSet.values()]}] ${text}`)
 });
 
 const port = parseInt(process.env.WEB_PORT ?? "5000")
