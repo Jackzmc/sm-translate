@@ -12,7 +12,8 @@ jobs:
   build:
     runs-on: ubuntu-full
     steps:
-      - uses: https://git.jackz.me/actions/checkout@v4
+      - name: Checkout
+        uses: https://git.jackz.me/actions/checkout@v4
       - name: Login to Container Registry
         uses: https://git.jackz.me/actions/docker-login-action@v3
         with:
