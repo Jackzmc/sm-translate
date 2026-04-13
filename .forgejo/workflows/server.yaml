@@ -3,7 +3,7 @@ on:
   push:
     paths:
       - 'server/**'
-      - '.forgejo/workflows/server.yml'
+      - '.forgejo/workflows/server.yaml'
     branches:
       - main
 

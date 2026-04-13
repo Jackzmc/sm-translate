@@ -2,7 +2,7 @@ on:
   push:
     paths:
       - 'scripting/**'
-      - '.forgejo/workflows/plugin.yml'
+      - '.forgejo/workflows/plugin.yaml'
   workflow_dispatch:
 
 jobs:
@@ -55,11 +55,11 @@ jobs:
   #   needs: build
   #   steps:
   #     - name: Pull Artifact
-  #       uses: https://git.jacz.me/actions/download-artifact@v4
+  #       uses: https://git.jackz.me/actions/download-artifact@v4
   #       with: 
   #         name: 1.12.x.zip
   #     - name: Install SSH Key
-  #       uses: https://git.jacz.me/actions/ssh-key-action@v2.7.0
+  #       uses: https://git.jackz.me/actions/ssh-key-action@v2.7.0
   #       with:
   #         key: ${{ secrets.REMOTE_PRIVATE_KEY }}
   #         known_hosts: ${{ secrets.KNOWN_HOSTS }}
