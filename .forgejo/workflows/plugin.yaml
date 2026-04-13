@@ -22,6 +22,7 @@ jobs:
       - name: Build Plugins
         env:
           SPCOMP_PATH: spcomp
+          SPCOMP_FAIL_ON_ERROR: "1"
         run: chmod +x compile_all.sh && ./compile_all.sh
       - name: Upload artifacts 
         uses: https://git.jackz.me/actions/upload-artifact@v4
