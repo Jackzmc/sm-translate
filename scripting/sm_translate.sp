@@ -17,7 +17,8 @@ Cookie langOverride;
 /**
  * TODO: 
  *  [ ] admin chat support
- * FIX: responses are per player count
+ *  [ ] fix/reduce translations that are en->en
+ *  [ ] fix manual translate, bypass source detect
  */
 
 public Plugin myinfo = {
@@ -61,7 +62,7 @@ Action Command_SetLanguage(int client, int args) {
     char arg[8];
     if(args == 0) {
         GetCmdArg(0, arg, sizeof(arg));
-        ReplyToCommand(client, "Syntax: %s <language code>", arg);
+        ReplyToCommand(client, "Syntax: %s <language code/\"OFF\",\"DEFAULT\">", arg);
         ReplyToCommand(client, "See your console for list of languages. Code is in brackets.");
         int result = GetClientLanguageCode(client, arg, sizeof(arg));
         if(result == -1) {
@@ -83,11 +84,11 @@ Action Command_SetLanguage(int client, int args) {
     }
     GetCmdArg(1, arg, sizeof(arg));
 
-    if(StrEqual(arg, "OFF")) {
+    if(StrEqual(arg, "OFF") || StrEqual(arg, "off")) {
         langOverride.Set(client, "_OFF_");
         ReplyToCommand(client, "Translations disabled. You will not see any translations");
         return Plugin_Handled;
-    } else if(StrEqual(arg, "DEFAULT")) {
+    } else if(StrEqual(arg, "DEFAULT") || StrEqual(arg, "default") || StrEqual(arg, "game") || StrEqual(arg, "GAME")) {
         langOverride.Set(client, "");
         ReplyToCommand(client, "Language preference set to use game language");
         return Plugin_Handled;
@@ -98,6 +99,9 @@ Action Command_SetLanguage(int client, int args) {
         ReplyToCommand(client, "Unknown language code");
         return Plugin_Handled;
     }
+    // ensure consistent naming
+    GetLanguageInfo(langId, arg, sizeof(arg), "", 0)
+    
     langOverride.Set(client, arg);
     ReplyToCommand(client, "Language preference set to #%d [%s]", langId, arg);
     return Plugin_Handled;
