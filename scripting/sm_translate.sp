@@ -98,6 +98,9 @@ Action Command_SetLanguage(int client, int args) {
         ReplyToCommand(client, "Unknown language code");
         return Plugin_Handled;
     }
+    // ensure consistent naming
+    GetLanguageInfo(langId, arg, sizeof(arg), "", 0)
+    
     langOverride.Set(client, arg);
     ReplyToCommand(client, "Language preference set to #%d [%s]", langId, arg);
     return Plugin_Handled;
