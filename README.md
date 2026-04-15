@@ -12,12 +12,21 @@ Sourcemod plugin that automatically translates messages in chat to all users' ta
 
 ## Setup
 
-By default the `sm_translate_api_path` cvar points to `http://localhost:5000/translate`. You will need to run the translate server `git.jackz.me/jackz/sm-translate:main`
+You will need to and to run the server.
 
-Translation server requires a [Cloud Translation](https://cloud.google.com/translate) [API Key](https://console.cloud.google.com/apis/credentials). Recommend to limit the key by IP address.
+### Plugin
 
+Download plugin from the [releases](./releases) or [artifacts](https://git.jackz.me/jackz/sm-translate/actions?workflow=plugin.yaml&actor=0&status=1)) pages.
 
-### docker-compose.yaml
+Change **`sm_translate_api_path`** (default: `http://localhost:5000/translate`) as applicable. Config file is at `left4dead2/cfg/sourcemod/sm_translate.cfg`
+
+### Server
+
+Translation server requires an [API Key](https://console.cloud.google.com/apis/credentials) for [Google Cloud Translation](https://cloud.google.com/translate). I recommend to limit the key by IP address.
+
+By default server listens on `http://0.0.0.0:5000`, with API at POST `/translate`
+
+#### docker-compose.yaml
 ```yaml
 services:
   translate:
@@ -25,6 +34,7 @@ services:
     restart: always
     environment:
       GOOGLE_TRANSLATE_API_KEY: ${GOOGLE_TRANSLATE_API_KEY}
+      HOST: 0.0.0.0
     env_file: .env
     ports:
       - 5000:5000
