@@ -1,5 +1,9 @@
 # SM Translate
 
+![server workflow status](https://git.jackz.me/jackz/sm-translate/badges/workflows/server.yaml/badge.svg)
+![plugin workflow status](https://git.jackz.me/jackz/sm-translate/badges/workflows/plugin.yaml/badge.svg)
+
+
 Sourcemod plugin that automatically translates messages in chat to all users' target language. Translations are done with Google Cloud Translate v2. A system checks if translation is necessary before even calling the API for a reduction in token usage.
 
 > [!NOTE]
