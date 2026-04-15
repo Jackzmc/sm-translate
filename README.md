@@ -16,7 +16,7 @@ You will need to and to run the server.
 
 ### Plugin
 
-Download plugin from the [releases](https://git.jackz.me/jackz/sm-translate/releases) or [artifacts](https://git.jackz.me/jackz/sm-translate/actions?workflow=plugin.yaml&actor=0&status=1)) pages.
+Download plugin from the [releases](https://git.jackz.me/jackz/sm-translate/releases) or [artifacts](https://git.jackz.me/jackz/sm-translate/actions?workflow=plugin.yaml&actor=0&status=1) pages.
 
 Change **`sm_translate_api_path`** (default: `http://localhost:5000/translate`) as applicable. Config file is at `left4dead2/cfg/sourcemod/sm_translate.cfg`
 
@@ -24,7 +24,7 @@ Change **`sm_translate_api_path`** (default: `http://localhost:5000/translate`) 
 
 Translation server requires an [API Key](https://console.cloud.google.com/apis/credentials) for [Google Cloud Translation](https://cloud.google.com/translate). I recommend to limit the key by IP address.
 
-By default server listens on `http://0.0.0.0:5000`, with API at POST `/translate`
+By default server listens on `http://0.0.0.0:5000`, with the API at `POST /translate`
 
 #### docker-compose.yaml
 ```yaml
