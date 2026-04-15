@@ -12,7 +12,7 @@ Sourcemod plugin that automatically translates messages in chat to all users' ta
 
 ## Setup
 
-You will need to and to run the server.
+Requires [System 2](https://forums.alliedmods.net/showthread.php?t=146019) extenstion. Some versions of System2 seem to cause crashes with outdated GLIBC libraries.
 
 ### Plugin
 
