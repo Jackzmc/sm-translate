@@ -14,6 +14,12 @@ char g_translatePath[64];
 
 Cookie langOverride;
 
+/**
+ * TODO: 
+ *  [ ] admin chat support
+ * FIX: responses are per player count
+ */
+
 public Plugin myinfo = {
     name =  "Translate Chat Messages", 
     author = "jackzmc", 
@@ -55,8 +61,16 @@ Action Command_SetLanguage(int client, int args) {
     char arg[8];
     if(args == 0) {
         GetCmdArg(0, arg, sizeof(arg));
-        ReplyToCommand(client, "Syntax: %s <new language CODE>", arg);
+        ReplyToCommand(client, "Syntax: %s <language code>", arg);
         ReplyToCommand(client, "See your console for list of languages. Code is in brackets.");
+        int result = GetClientLanguageCode(client, arg, sizeof(arg));
+        if(result == -1) {
+            ReplyToCommand(client, "Translations currently disabled for you");
+        } else if(result == 0) {
+            ReplyToCommand(client, "Current language: \"%s\" (game)", arg);
+        } else {
+            ReplyToCommand(client, "Current language: \"%s\" (override)", arg);
+        }
 
         int numLangs = GetLanguageCount();
         char name[32];
@@ -176,7 +190,7 @@ void OnTranslateResponse(bool success, const char[] error, System2HTTPRequest re
     char srcLang[8];
     // Not detected
     if(obj.IsNull("source")) return;
-    
+
     obj.GetString("source", srcLang, sizeof(srcLang));
 
     JSONArray translations = view_as<JSONArray>(obj.Get("translations"));
@@ -202,7 +216,7 @@ bool SendTranslation(int sourceClient, const char[] srcLangCode, const char[] ta
                 continue;
             }
             if(StrEqual(targetLangCode, code)) {
-                C_PrintToChat(sourceClient, "{olive}[%s] %N: %s", srcLangCode, sourceClient, msg);
+                C_PrintToChat(i, "{olive}[%s] %N: %s", srcLangCode, sourceClient, msg);
             }
         }
     }

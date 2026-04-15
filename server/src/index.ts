@@ -37,7 +37,7 @@ app.post('/translate', async (req, res) => {
 
   const targetSet = new Set(targets.split(","))
 
-  console.debug(`[${targets} ${text}`)
+  console.debug(`[${targets}] ${text}`)
 
   // Fast local detection (~5ms)
   const detected = franc(text);
@@ -76,14 +76,13 @@ app.post('/translate', async (req, res) => {
       timeElapsedMs: timeElapsed
     })
 
-    console.debug(`\t[${target}] ${translation}`)
+    console.debug(`\t[${sourceLang}->${target}] ${translation}`)
   }
 
   res.json({
     source: sourceLang,
     translations
   } as TranslateResponse);
-  console.log(`[${sourceLang}->${[...targetSet.values()]}] ${text}`)
 });
 
 const port = parseInt(process.env.WEB_PORT ?? "5000")
