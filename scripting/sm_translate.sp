@@ -17,7 +17,8 @@ Cookie langOverride;
 /**
  * TODO: 
  *  [ ] admin chat support
- * FIX: responses are per player count
+ *  [ ] fix/reduce translations that are en->en
+ *  [ ] fix manual translate, bypass source detect
  */
 
 public Plugin myinfo = {
