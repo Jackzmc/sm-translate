@@ -81,7 +81,7 @@ app.post('/translate', async (req, res) => {
       timeElapsedMs: timeElapsed
     })
 
-    console.debug(`\t[${sourceLang}->${target}] ${translation}`)
+    console.debug(`[${sourceLang}->${target}] ${translation}`)
   }
 
   res.json({
