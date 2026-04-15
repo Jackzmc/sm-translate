@@ -75,6 +75,8 @@ app.post('/translate', async (req, res) => {
       text: translation,
       timeElapsedMs: timeElapsed
     })
+
+    console.debug(`\t[${target}] ${translation}`)
   }
 
   res.json({
