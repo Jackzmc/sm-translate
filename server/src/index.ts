@@ -26,23 +26,29 @@ interface TranslateTranslationResult {
 }
 
 export interface TranslateResponse {
-  source: string,
+  source: string | null,
   translations: TranslateTranslationResult[]
 }
 
 app.post('/translate', async (req, res) => {
-  console.log(req.query)
   const { text, targets } = req.query
   if (!text || typeof text != "string") return badRequest(res, "text is not defined or not a string")
   if (!targets || typeof targets != "string") return badRequest(res, "targets is not defined or not a comma separated list")
 
   const targetSet = new Set(targets.split(","))
 
-  const requestStart = performance.now()
+  console.debug(`[${targets} ${text}`)
+
   // Fast local detection (~5ms)
   const detected = franc(text);
   let sourceLang = LANG_MAP[detected]
-  if(!sourceLang) {
+  if(detected == "und") {
+    // Language not detected, fallback to API
+    const [detectResult] = await translator.detect(text) 
+    sourceLang = detectResult.language
+    console.debug('Language was unknown, API detected', sourceLang)
+  } else if(!sourceLang) {
+    // Mapping entry missing
     console.warn(`Unknown language code "${detected}", falling back to 'en'`)
     sourceLang = "en"
   }

@@ -6,48 +6,44 @@
 #include <system2>
 #include <ripext>
 #include <multicolors>
+#include <log>
+#include <clientprefs>
 
 ConVar cvarTranslatePath;
 char g_translatePath[64];
 
-char g_desiredLangCode[8];
-
-// JSONObject EMPTY_BODY;
+Cookie langOverride;
 
 public Plugin myinfo = {
     name =  "Translate Chat Messages", 
     author = "jackzmc", 
     description = "", 
     version = "1.0", 
-    url = "https://github.com/Jackzmc/sourcemod-plugins"
+    url = "https://github.com/Jackzmc/sm-translate"
 };
-
-/**
- * * ON CHAT MSG:
- *  1. Get target languages for ALL recipients, pass list to API
- * 
- * 
- * * ADD !t <CODE> <msg> command 
- * 
- */
 
 public void OnPluginStart() {
     cvarTranslatePath = CreateConVar("sm_translate_api_path", "http://localhost:5000/translate", "The full protocol + host + path to the translation endpoint");
     cvarTranslatePath.AddChangeHook(OnPathChanged);
     cvarTranslatePath.GetString(g_translatePath, sizeof(g_translatePath));
 
+    Log_Init("translate", Log_Info, ADMFLAG_GENERIC);
 
+    langOverride = new Cookie("translate_target", "Desired language (code) for messages to translate to", CookieAccess_Public);
 
-    GetLanguageInfo(LANG_SERVER, g_desiredLangCode, sizeof(g_desiredLangCode), "", 0);
+    RegConsoleCmd("sm_t", Command_Translate, "Manually translate sentence to desired language");
 
-    RegConsoleCmd("sm_t", Command_Translate, "Manually translate sentence to english");
+    RegConsoleCmd("sm_lang", Command_SetLanguage, "Set your target language");
 
     AutoExecConfig(true, "sm_translate");
+
 }
 
 void OnPathChanged(ConVar convar, const char[] oldValue, const char[] newValue) {
     strcopy(g_translatePath, sizeof(g_translatePath), newValue);
 }
+
+/////////// TRIGGERS
 
 public void OnClientSayCommand_Post(int client, const char[] command, const char[] sArgs) {
     if(client > 0 && StrEqual(command, "say") && !IsFakeClient(client) && g_translatePath[0] != '\0') {
@@ -55,16 +51,42 @@ public void OnClientSayCommand_Post(int client, const char[] command, const char
     }
 }
 
-void MergeRemainingArgs(int argIndex, char[] output, int maxlen) {
-    // Correct commands that don't wrap message in quotes
-    int args = GetCmdArgs();
-    if(args > argIndex) {
-        char buffer[64];
-        for(int i = argIndex; i <= args; i++) {
-            GetCmdArg(i, buffer, sizeof(buffer));
-            Format(output, maxlen, "%s %s", output, buffer);
+Action Command_SetLanguage(int client, int args) {
+    char arg[8];
+    if(args == 0) {
+        GetCmdArg(0, arg, sizeof(arg));
+        ReplyToCommand(client, "Syntax: %s <new language CODE>", arg);
+        ReplyToCommand(client, "See your console for list of languages. Code is in brackets.");
+
+        int numLangs = GetLanguageCount();
+        char name[32];
+        PrintToConsole(client, "\"DEFAULT\" to use game language, and \"OFF\" to disable");
+        for(int i = 0; i < numLangs; i++) {
+            GetLanguageInfo(i, arg, sizeof(arg), name, sizeof(name));
+            PrintToConsole(client, "#%d. [%s] %s", i, arg, name);
         }
+        return Plugin_Handled;
     }
+    GetCmdArg(1, arg, sizeof(arg));
+
+    if(StrEqual(arg, "OFF")) {
+        langOverride.Set(client, "_OFF_");
+        ReplyToCommand(client, "Translations disabled. You will not see any translations");
+        return Plugin_Handled;
+    } else if(StrEqual(arg, "DEFAULT")) {
+        langOverride.Set(client, "");
+        ReplyToCommand(client, "Language preference set to use game language");
+        return Plugin_Handled;
+    }
+
+    int langId = GetLanguageByCode(arg);
+    if(langId == -1) {
+        ReplyToCommand(client, "Unknown language code");
+        return Plugin_Handled;
+    }
+    langOverride.Set(client, arg);
+    ReplyToCommand(client, "Language preference set to #%d [%s]", langId, arg);
+    return Plugin_Handled;
 }
 
 Action Command_Translate(int client, int args) {
@@ -93,10 +115,14 @@ Action Command_Translate(int client, int args) {
 ArrayList GetTargetLanguages() {
     ArrayList list = new ArrayList();
     char code[8];
+    int serverId = GetServerLanguage();
+    GetLanguageInfo(serverId, code, sizeof(code), "", 0);
+
     for(int i = 1; i <= MaxClients; i++) {
         if(IsClientInGame(i) && !IsFakeClient(i)) {
-            int langId = GetClientLanguage(i);
-            GetLanguageInfo(langId, code, sizeof(code), "", 0);
+            if(GetClientLanguageCode(i, code, sizeof(code)) == -1) {
+                continue;
+            }
             
             if(list.FindString(code) == -1) {
                 list.PushString(code);
@@ -104,14 +130,6 @@ ArrayList GetTargetLanguages() {
         }
     }
     return list;
-}
-
-void JoinString(ArrayList list, int partMaxLength, char[] output, int maxlen) {
-    char[] buffer = new char[partMaxLength];
-    for(int i = 0; i < list.Length; i++) {
-        list.GetString(i, buffer, partMaxLength);
-        Format(output, maxlen, "%s%s%s", output, buffer, (i != list.Length - 1 ? "," : ""));
-    }
 }
 
 /***
@@ -136,6 +154,8 @@ void CheckTranslate(int client, const char[] message, ArrayList desiredLanguages
     static char buffer[256];
     Format(buffer, sizeof(buffer), "?text=%s&targets=%s", msg, targets);
 
+    LogDebug("query %s", buffer);
+
     System2HTTPRequest request = new System2HTTPRequest(OnTranslateResponse, "%s%s", g_translatePath, buffer);
     request.Any = GetClientUserId(client);
     request.POST();
@@ -143,27 +163,26 @@ void CheckTranslate(int client, const char[] message, ArrayList desiredLanguages
 
 void OnTranslateResponse(bool success, const char[] error, System2HTTPRequest request, System2HTTPResponse response, HTTPRequestMethod method) {
     if(!response) {
-        PrintToServer("Network error %s", error);
+        LogError("Network error %s", error);
         return;
     } else if (response.StatusCode != 200) {
         LogError("Translate failed. Status %d", response.StatusCode);
         return;
     }
-    /**
-     *  result: "translated" | "skipped",
-        source: string,
-        target: string,
 
-        text?: string,
-     */
     char buffer[256];
     response.GetContent(buffer, sizeof(buffer));
     JSONObject obj = JSONObject.FromString(buffer);
     char srcLang[8];
+    // Not detected
+    if(obj.IsNull("source")) return;
+    
     obj.GetString("source", srcLang, sizeof(srcLang));
 
     JSONArray translations = view_as<JSONArray>(obj.Get("translations"));
     JSONObject result;
+
+    LogDebug("source=%s translations=%d uid=%d", srcLang, translations.Length, request.Any);
     char lang[8];
     int client = GetClientOfUserId(request.Any);
     for(int i = 0; i < translations.Length; i++) {
@@ -176,18 +195,57 @@ void OnTranslateResponse(bool success, const char[] error, System2HTTPRequest re
 }
 
 bool SendTranslation(int sourceClient, const char[] srcLangCode, const char[] targetLangCode, const char[] msg) {
-    int langId = GetLanguageByCode(targetLangCode);
-    if(langId == -1) {
-        PrintToServer("[Translations] WARN: Unknown language code \"%s\"", targetLangCode);
-        return false;
-    }
-
+    char code[8];
     for(int i = 1; i <= MaxClients; i++) {
         if(IsClientInGame(i) && !IsFakeClient(i)) {
-            int targetLangId = GetClientLanguage(i);
-            if(targetLangId == langId)
+            if(GetClientLanguageCode(i, code, sizeof(code)) == -1) {
+                continue;
+            }
+            if(StrEqual(targetLangCode, code)) {
                 C_PrintToChat(sourceClient, "{olive}[%s] %N: %s", srcLangCode, sourceClient, msg);
+            }
         }
     }
+
+    LogInfo("TRANS [%s] %N: %s", srcLangCode, sourceClient, msg);
+
     return true;
+}
+
+////////// UTILS
+
+void JoinString(ArrayList list, int partMaxLength, char[] output, int maxlen) {
+    char[] buffer = new char[partMaxLength];
+    for(int i = 0; i < list.Length; i++) {
+        list.GetString(i, buffer, partMaxLength);
+        Format(output, maxlen, "%s%s%s", output, buffer, (i != list.Length - 1 ? "," : ""));
+    }
+}
+
+void MergeRemainingArgs(int argIndex, char[] output, int maxlen) {
+    // Correct commands that don't wrap message in quotes
+    int args = GetCmdArgs();
+    if(args > argIndex) {
+        char buffer[64];
+        for(int i = argIndex; i <= args; i++) {
+            GetCmdArg(i, buffer, sizeof(buffer));
+            Format(output, maxlen, "%s %s", output, buffer);
+        }
+    }
+}
+
+
+/**
+ * Get clients language code. Returns 0 if game language, 1 if override, -1 if disabled
+ */
+int GetClientLanguageCode(int client, char[] code, int maxlen) {
+    langOverride.Get(client, code, maxlen);
+    if(code[0] == '\0') {
+        int langId = GetClientLanguage(client);
+        GetLanguageInfo(langId, code, maxlen, "", 0);
+        return 0;
+    } else if(StrEqual(code, "_OFF_")) {
+        return -1;
+    }
+    return 1;
 }
