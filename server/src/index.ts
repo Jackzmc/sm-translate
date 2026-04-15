@@ -91,9 +91,9 @@ app.post('/translate', async (req, res) => {
   } as TranslateResponse);
 });
 
-const port = parseInt(process.env.WEB_PORT ?? "5000")
-if (Number.isNaN(port)) throw new Error("WEB_PORT is ivnalid")
-const host = process.env.WEB_HOST ?? "127.0.0.1"
+const port = parseInt(process.env.PORT ?? "5000")
+if (Number.isNaN(port)) throw new Error("PORT env variable is invalid")
+const host = process.env.HOST ?? "0.0.0.0"
 
 console.info(`Listening on http://${host}:${port}`)
 app.listen(port, host);
