@@ -37,11 +37,11 @@ app.post('/translate', async (req, res) => {
 
   const targetSet = new Set(targets.split(","))
 
-  console.debug(`[${targets}] ${text}`)
 
   // Fast local detection (~5ms)
   const detected = franc(text);
   if(detected === "und") {
+    console.debug(`[??->${targets}] ORG ${text}`)
     // Language not detected, ignore
     return {
       sourceLang: "",
@@ -58,6 +58,7 @@ app.post('/translate', async (req, res) => {
     console.warn(`Unknown language code "${detected}", falling back to 'en'`)
     sourceLang = "en"
   }
+  console.debug(`[${sourceLang}->${targets}] ORG ${text}`)
 
   targetSet.delete(sourceLang)
 
@@ -82,7 +83,7 @@ app.post('/translate', async (req, res) => {
       timeElapsedMs: timeElapsed
     })
 
-    console.debug(`[${sourceLang}->${target}] ${translation}`)
+    console.debug(`[${sourceLang}->${target}] TRAN ${translation}`)
   }
 
   res.json({
