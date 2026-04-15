@@ -43,10 +43,15 @@ app.post('/translate', async (req, res) => {
   const detected = franc(text);
   let sourceLang = LANG_MAP[detected]
   if(detected == "und") {
-    // Language not detected, fallback to API
-    const [detectResult] = await translator.detect(text) 
-    sourceLang = detectResult.language
-    console.debug('Language was unknown, API detected', sourceLang)
+    // Language not detected, ignore
+    return {
+      sourceLang: "",
+      translations: []
+    }
+    // // Language not detected, fallback to API
+    // const [detectResult] = await translator.detect(text) 
+    // sourceLang = detectResult.language
+    // console.debug('Language was /unknown, API detected', sourceLang)
   } else if(!sourceLang) {
     // Mapping entry missing
     console.warn(`Unknown language code "${detected}", falling back to 'en'`)
