@@ -16,7 +16,7 @@ You will need to and to run the server.
 
 ### Plugin
 
-Download plugin from the [releases](./releases) or [artifacts](https://git.jackz.me/jackz/sm-translate/actions?workflow=plugin.yaml&actor=0&status=1)) pages.
+Download plugin from the [releases](https://git.jackz.me/jackz/sm-translate/releases) or [artifacts](https://git.jackz.me/jackz/sm-translate/actions?workflow=plugin.yaml&actor=0&status=1)) pages.
 
 Change **`sm_translate_api_path`** (default: `http://localhost:5000/translate`) as applicable. Config file is at `left4dead2/cfg/sourcemod/sm_translate.cfg`
 
